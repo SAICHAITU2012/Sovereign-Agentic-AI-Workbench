@@ -1,0 +1,30 @@
+PROCEDURE EMP-SOP-014 — EQUIPMENT INSPECTION AND APPROVAL (Rev 7)
+
+1. PURPOSE
+This procedure defines how inspection findings are reviewed and how an
+equipment approval note is issued after a statutory or shutdown inspection
+at MRPL.
+
+2. APPROVAL NOTE REQUIREMENTS
+An approval note for returned-to-service decisions MUST contain:
+  a. Equipment tag and report number.
+  b. A statement of each finding with severity (UNACCEPTABLE / ACCEPTABLE).
+  c. Cross-reference to the applicable acceptance criteria in PV-MAN-02.
+  d. Conditions imposed before restart (repairs, re-rating, monitoring).
+  e. The inspector name, date, and the approving authority signature block.
+
+3. SEVERITY CLASSIFICATION
+Any wall thickness below the minimum required thickness in PV-MAN-02 is
+classified UNACCEPTABLE and the equipment must not return to service until
+repaired or formally re-rated.
+Any hydro test pressure loss greater than 5 percent per hour is classified
+UNACCEPTABLE.
+
+4. ESCALATION
+Findings classified UNACCEPTABLE are escalated to the Inspection Manager
+within 24 hours. Approval notes for UNACCEPTABLE findings require the
+counter-signature of the Inspection Manager.
+
+5. RECORDS
+The signed approval note is filed with the inspection dossier and a copy is
+sent to the Mechanical Records Office.

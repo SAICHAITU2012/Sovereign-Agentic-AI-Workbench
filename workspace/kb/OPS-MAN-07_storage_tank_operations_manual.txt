@@ -1,0 +1,18 @@
+STORAGE TANK OPERATIONS MANUAL OPS-MAN-07 (Rev 9)
+
+SECTION 3 — TEMPERATURE LIMITS
+3.1 The maximum permitted product temperature in atmospheric storage tanks
+containing crude and middle distillates is 90 degrees Celsius at the tank
+bottom sensing point.
+
+3.2 If the tank temperature exceeds 90 degrees Celsius, the operator must
+immediately start the tank cooling water spray, stop any circulation or
+heating medium flow, and inform the Shift In-charge.
+
+3.3 Temperatures above 95 degrees Celsius for more than 15 minutes require
+a Level-2 incident report per HSE-MAN-11, and the tank must be isolated for
+inspection before it is returned to service.
+
+SECTION 6 — ROOF SEAL AND VENTING
+6.1 Floating roof seals are inspected quarterly; seal gaps exceeding
+specified limits require tank withdrawal from service.

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign Agentic AI Workbench — On-Premise</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">⬢</div>
+    <div>
+      <h1>Sovereign Agentic AI Workbench</h1>
+      <p>On-premise · open-weight models · air-gapped — nothing leaves this machine</p>
+    </div>
+  </div>
+  <div class="header-status">
+    <span id="engine-pill" class="pill">checking…</span>
+    <span id="airgap-pill" class="pill ok">AIR-GAP: ENFORCED</span>
+  </div>
+</header>
+
+<main class="grid">
+  <!-- LEFT: task input -->
+  <section class="panel" id="panel-input">
+    <h2>Task Console</h2>
+    <textarea id="task-input" placeholder='e.g. "Read the scanned inspection report and prepare an approval note."'></textarea>
+
+    <div class="demo-buttons">
+      <p>Required demos (one click):</p>
+      <button class="demo" data-demo="doc">📄 Scanned report → approval note</button>
+      <button class="demo" data-demo="code">🐍 Coding task, sandbox-verified</button>
+      <button class="demo" data-demo="vision">🖼️ Multimodal: analyse P&ID drawing</button>
+      <button class="demo" data-demo="qa">📚 Ask the local knowledge base</button>
+      <button class="demo" data-demo="office">📊 Excel + PPT deliverables</button>
+      <button class="demo" id="selftest-btn">🛰️ Air-gap self-test (attempt outbound)</button>
+    </div>
+
+    <div class="attach-row">
+      <input type="file" id="file-input" multiple>
+      <div id="attachment-chips" class="chips"></div>
+    </div>
+
+    <button id="run-btn" class="primary">▶ Run Task</button>
+
+    <h2>Knowledge Base <button id="reindex-btn" class="mini">↻ re-index</button></h2>
+    <input type="file" id="kb-input" multiple>
+    <div id="kb-stats" class="muted">—</div>
+
+    <h2>Deliverables</h2>
+    <ul id="deliverables" class="deliverables"><li class="muted">none yet</li></ul>
+  </section>
+
+  <!-- CENTER: agent activity -->
+  <section class="panel wide" id="panel-activity">
+    <h2>Agent Activity</h2>
+    <div id="timeline" class="timeline">
+      <div class="muted center">Run a task to see the agent plan, choose tools, and iterate.</div>
+    </div>
+  </section>
+
+  <!-- RIGHT: routing + network monitor -->
+  <section class="panel" id="panel-side">
+    <h2>Model Router</h2>
+    <div id="routing" class="routing muted">no task routed yet</div>
+
+    <h2>Network Sovereignty Monitor</h2>
+    <div class="net-stats" id="net-stats">
+      <div class="net-big"><span id="net-blocked">0</span> external <small>blocked</small></div>
+      <div class="net-row"><span>Outbound attempts</span><b id="net-attempts">0</b></div>
+      <div class="net-row"><span>Loopback allowed</span><b id="net-local">0</b></div>
+      <div class="net-row"><span>Cloud API calls</span><b>0</b></div>
+      <div class="net-row"><span>External LLM calls</span><b>0</b></div>
+    </div>
+    <div id="net-events" class="net-events"></div>
+
+    <h2>Local Engine</h2>
+    <div id="engine" class="engine muted">—</div>
+  </section>
+</main>
+
+<footer>
+  SIH26117 · Sovereign On-Premise Agentic AI Workbench · all inference, storage and tooling
+  restricted to 127.0.0.1 · egress guard active at socket level
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

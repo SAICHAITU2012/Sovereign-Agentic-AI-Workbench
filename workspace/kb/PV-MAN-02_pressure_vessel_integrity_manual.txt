@@ -1,0 +1,28 @@
+PRESSURE VESSEL INTEGRITY MANUAL PV-MAN-02 (Rev 4)
+
+SECTION 5 — MINIMUM THICKNESS AND CORROSION ALLOWANCE
+5.1 The minimum required thickness of a pressure shell is the thickness
+required by the design code PLUS corrosion allowance for the intended
+service life. Operating below the minimum required thickness is prohibited.
+
+5.2 For carbon steel shells in crude overhead service, the typical corrosion
+allowance is 3.0 mm and the design life basis is 20 years. Where measured
+thickness is below the minimum required thickness, the component must be
+re-rated, repaired or replaced.
+
+5.3 Re-rating requires a fitness-for-service calculation by the Engineering
+Department and formal re-rating approval.
+
+SECTION 8 — HYDROSTATIC TESTING
+8.1 Hydro test acceptance: pressure loss shall not exceed 5 percent per
+hour during the hold period. Any visible leakage is cause for immediate
+rejection of the test.
+
+8.2 Leaking tubes may be plugged provided the plugged tube count does not
+exceed 10 percent of the total tube count per pass; otherwise retubing is
+required.
+
+SECTION 9 — GASKETS AND SEALING SURFACES
+9.1 Gasket seating surfaces with corrosion coverage greater than 10 percent
+of the sealing circumference shall be re-machined before a new gasket is
+fitted.

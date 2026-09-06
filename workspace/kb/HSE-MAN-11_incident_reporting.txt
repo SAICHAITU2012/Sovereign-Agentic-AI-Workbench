@@ -1,0 +1,8 @@
+HSE MANUAL HSE-MAN-11 (Rev 3) — EXTRACT
+
+LEVEL-2 INCIDENT REPORTING
+A Level-2 incident includes any deviation from safe operating limits that
+persists for more than 15 minutes, any loss of primary containment, and any
+equipment operated outside its approved envelope. Level-2 incidents must be
+reported within 24 hours using form HSE-QF-02 and require a formal cause
+investigation before the affected equipment returns to service.

@@ -1,0 +1,16 @@
+INTERNAL CORRESPONDENCE — MECHANICAL RECORDS (excerpt)
+
+From: Mechanical Records Office
+To: Inspection Section
+Date: 03 March 2025
+Subject: E-101 condenser history
+
+E-101 (CDU overhead condenser) was last retubed in 2019. During the 2024
+shutdown, minor inlet nozzle gasket seat corrosion was already noted at
+approximately 8 percent circumferential coverage and left for monitoring.
+Thickness readings in 2024 were around 9.3 mm near the shell inlet nozzle.
+The shell is carbon steel with a 3.0 mm corrosion allowance, consistent
+with PV-MAN-02 Section 5.2.
+
+Please continue to trend the inlet nozzle region closely; the thinning rate
+in that area has historically been the highest in this exchanger.
