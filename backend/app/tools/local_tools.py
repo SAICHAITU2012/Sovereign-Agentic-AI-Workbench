@@ -162,6 +162,25 @@ def run_python(code: str, purpose: str = ""):
 
 # ------------------------------------------------------ office documents ----
 
+def _add_runs(par, text: str):
+    """Add text to a paragraph, converting **bold** spans to real bold runs
+    and stripping any leftover markdown emphasis characters."""
+    for i, part in enumerate(re.split(r"\*\*(.+?)\*\*", text)):
+        if not part:
+            continue
+        run = par.add_run(part.replace("*", ""))
+        if i % 2 == 1:
+            run.bold = True
+
+
+def _md_heading_level(line: str) -> int | None:
+    """Return the Word heading level for a markdown '# ' line, else None."""
+    m = re.match(r"^(#{1,4})\s+(.*)$", line)
+    if not m:
+        return None
+    return len(m.group(1))
+
+
 @tool("create_docx", "Create a Word (.docx) deliverable from a title and structured "
       "content (sections given as markdown-ish text with '## Section' headers).",
       {"type": "object",
@@ -169,32 +188,30 @@ def run_python(code: str, purpose: str = ""):
                       "title": {"type": "string"},
                       "content": {"type": "string"}},
        "required": ["filename", "title", "content"]})
+
+
 def create_docx(filename: str, title: str, content: str):
     from docx import Document
-    from docx.shared import Pt
 
     doc = Document()
     doc.add_heading(title, level=0)
-    for block in re.split(r"\n(?=## )", content):
-        block = block.strip()
-        if not block:
+    for raw_line in content.split("\n"):
+        line = raw_line.strip()
+        if not line:
             continue
-        if block.startswith("## "):
-            head, _, body = block.partition("\n")
-            doc.add_heading(head[3:].strip(), level=1)
-            for para in body.strip().split("\n"):
-                para = para.strip()
-                if not para:
-                    continue
-                if para.startswith("- "):
-                    doc.add_paragraph(para[2:], style="List Bullet")
-                else:
-                    doc.add_paragraph(para)
+        level = _md_heading_level(line)
+        if level:
+            text = re.sub(r"^#+\s*", "", line).replace("**", "")
+            doc.add_heading(text, level=min(level, 3))
+        elif line.startswith("- ") or line.startswith("* "):
+            par = doc.add_paragraph(style="List Bullet")
+            _add_runs(par, line[2:])
+        elif re.match(r"^\d+\.\s+", line):
+            par = doc.add_paragraph(style="List Number")
+            _add_runs(par, re.sub(r"^\d+\.\s+", "", line))
         else:
-            for para in block.split("\n"):
-                para = para.strip()
-                if para:
-                    doc.add_paragraph(para)
+            par = doc.add_paragraph()
+            _add_runs(par, line)
 
     out = OUTPUTS_DIR / filename
     out.parent.mkdir(parents=True, exist_ok=True)
