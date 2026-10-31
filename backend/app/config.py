@@ -15,6 +15,11 @@ for d in (WORKSPACE, KB_DIR, UPLOADS_DIR, OUTPUTS_DIR, SANDBOX_DIR):
 # --- Ollama (local inference server on 127.0.0.1 only) ---
 OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
+# Context window per generate() call. Must be set explicitly: Ollama's default
+# (~2-4k tokens) would silently truncate our system prompt + tool docs +
+# observations on longer tasks. 8k fits the 1.5B models comfortably in 16 GB.
+NUM_CTX = 8192
+
 # --- Open-weight model registry ---
 # Everything here runs locally through Ollama. New open-weight models can be
 # added by appending to this registry — no other code changes required.

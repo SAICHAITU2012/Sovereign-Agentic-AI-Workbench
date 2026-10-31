@@ -31,6 +31,11 @@ socket.connect() is monkey-patched: loopback only, everything else blocked.
 ## Run
 
 ```bash
+# 0. system dependency (one-time) — pytesseract needs the Tesseract OS binary;
+#    pip alone will NOT install it, and OCR silently falls back to the VLM without it
+#    macOS:          brew install tesseract
+#    Debian/Ubuntu:  sudo apt install tesseract-ocr
+
 # 1. models (one-time)
 ollama pull qwen2.5:1.5b qwen2.5-coder:1.5b moondream nomic-embed-text
 

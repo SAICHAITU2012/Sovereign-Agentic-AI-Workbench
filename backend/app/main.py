@@ -10,7 +10,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -24,6 +24,19 @@ from .agent.orchestrator import Orchestrator, task_manager
 from .rag import store as rag_store
 
 app = FastAPI(title="Sovereign Agentic AI Workbench", version="1.0")
+
+
+def _safe_filename(name: str) -> str:
+    """Keep only the basename of an uploaded filename.
+
+    Blocks traversal ('../../.zprofile'), absolute paths ('/etc/passwd') and
+    hidden/dot files — anything else would let a client write outside the
+    intended directory.
+    """
+    clean = Path(name or "").name.strip()
+    if not clean or clean.startswith(".") or clean in {".", ".."}:
+        raise HTTPException(status_code=400, detail="invalid filename")
+    return clean
 
 
 @app.on_event("startup")
@@ -72,10 +85,11 @@ async def network_selftest():
 
 @app.post("/api/upload")
 async def upload(file: UploadFile = File(...)):
-    dest = UPLOADS_DIR / file.filename
+    clean = _safe_filename(file.filename)
+    dest = UPLOADS_DIR / clean
     with dest.open("wb") as f:
         shutil.copyfileobj(file.file, f)
-    return {"path": f"uploads/{file.filename}", "size": dest.stat().st_size}
+    return {"path": f"uploads/{clean}", "size": dest.stat().st_size}
 
 
 @app.get("/api/files")
@@ -113,10 +127,11 @@ async def kb_reindex():
 
 @app.post("/api/kb/upload")
 async def kb_upload(file: UploadFile = File(...)):
-    dest = KB_DIR / file.filename
+    clean = _safe_filename(file.filename)
+    dest = KB_DIR / clean
     with dest.open("wb") as f:
         shutil.copyfileobj(file.file, f)
-    return {"path": str(dest), "name": file.filename}
+    return {"path": str(dest), "name": clean}
 
 
 # -------------------------------------------------------------- tasks ------

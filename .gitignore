@@ -1,3 +1,10 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# generated/runtime artifacts — never track
+workspace/outputs/
+workspace/sandbox/
+workspace/vector_store.json
+workspace/uploads/*.png
+workspace/uploads/inspection_report.pdf

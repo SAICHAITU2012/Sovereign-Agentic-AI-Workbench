@@ -12,6 +12,7 @@ organization. This module does three things:
 
 A blocked record is the smoking gun for judges: attempt -> blocked by policy.
 """
+import ipaddress
 import socket
 import threading
 import time
@@ -47,6 +48,16 @@ def _record(dest: str, port: int, allowed: bool) -> None:
 
 
 def is_local(host: str) -> bool:
+    # IP literals are decided without DNS: resolving a hostname would leak the
+    # query to the configured resolver before the verdict. All our legitimate
+    # traffic (Ollama, the local UI) uses 127.0.0.1 literals, so the common
+    # path never touches a resolver at all.
+    try:
+        ip = ipaddress.ip_address(host)
+        return (ip.is_loopback or ip.is_link_local
+                or str(ip) in ALLOWED_HOSTS or host in ALLOWED_HOSTS)
+    except ValueError:
+        pass  # hostname — needs resolution to decide
     try:
         infos = socket.getaddrinfo(host, None)
     except OSError:

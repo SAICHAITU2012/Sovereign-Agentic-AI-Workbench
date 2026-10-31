@@ -9,7 +9,7 @@ from typing import Optional
 
 import httpx
 
-from ..config import OLLAMA_BASE_URL, MODEL_REGISTRY
+from ..config import OLLAMA_BASE_URL, MODEL_REGISTRY, NUM_CTX
 from ..security import egress
 
 
@@ -42,7 +42,8 @@ class OllamaProvider:
             "prompt": prompt,
             "stream": False,
             "keep_alive": "30m",
-            "options": {"temperature": temperature, "num_predict": num_predict},
+            "options": {"temperature": temperature, "num_predict": num_predict,
+                        "num_ctx": NUM_CTX},
         }
         if system:
             payload["system"] = system
