@@ -5,9 +5,17 @@ AI Workbench using Open-Weight Multimodal LLMs for Confidential Industrial
 Work"** (problem origin: Mangalore Refinery and Petrochemicals Limited).
 
 Everything — inference, embeddings, retrieval, tools, document generation and
-the UI — runs **on the local machine**. The backend enforces an air-gap at the
-socket level: any attempt to open a connection to a non-loopback host is
-blocked and logged, and the UI's Network Sovereignty Monitor shows the proof.
+the UI — runs **on the local machine**. The air-gap is enforced in two layers:
+
+1. **App layer (always on)** — `socket.connect()` is guarded in the backend:
+   non-loopback attempts are blocked *and logged* (UI Network Sovereignty
+   Monitor). A Python-level guard can be bypassed by hostile generated code.
+2. **Kernel layer (macOS, recommended)** — launched via
+   `scripts/run_airgapped.sh`, the whole process tree runs under a Seatbelt
+   profile that refuses every non-loopback socket operation *at the syscall
+   level* — including raw `_socket`, child processes spawned by generated
+   code, and ctypes/libc syscalls. `POST /api/network/sandbox_escape_test`
+   proves this empirically; `evidence/` holds a signed-off verification run.
 
 ## Architecture
 
@@ -26,7 +34,52 @@ Agent Orchestrator ──── plan → choose tool → observe → iterate →
         workspace/kb — SOPs, manuals, past correspondence
 
 socket.connect() is monkey-patched: loopback only, everything else blocked.
+Under run_airgapped.sh the kernel additionally refuses all non-loopback
+syscalls for the entire process tree (Seatbelt profile scripts/airgap/).
 ```
+
+
+## Run
+
+```bash
+# 0. system dependency (one-time) — pytesseract needs the Tesseract OS binary;
+#    pip alone will NOT install it, and OCR silently falls back to the VLM without it
+#    macOS:          brew install tesseract
+#    Debian/Ubuntu:  sudo apt install tesseract-ocr
+
+# 1. models (one-time)
+ollama pull qwen2.5:1.5b qwen2.5-coder:1.5b moondream nomic-embed-text
+
+# 2. python deps
+pip install -r backend/requirements.txt
+
+# 3. demo assets (one-time)
+python3 scripts/make_demo_assets.py
+
+# 4. start — recommended: kernel-enforced air-gap (macOS)
+./scripts/run_airgapped.sh            # same app on http://127.0.0.1:8000,
+                                      # whole process tree: loopback only
+#    … or plain (app-layer guard only):
+cd backend && uvicorn app.main:app --port 8000
+# open http://127.0.0.1:8000
+```
+
+## Verify the air-gap (adversarial battery)
+
+With the workbench running under `run_airgapped.sh`:
+
+```bash
+python3 scripts/airgap/verify_airgap.py
+```
+
+Six checks, exit code 0 iff all pass, report written to `evidence/`:
+the kernel refuses external HTTPS from any process in the tree (T1a) while
+loopback/Ollama still works (T1b); the app guard blocks and logs an outbound
+attempt (T2); four escape attempts run through the *real* sandbox tool —
+plain `socket`, raw `_socket`, an unguarded `curl` child, raw
+`ctypes`/libc syscalls — and all fail (T3); and a real local LLM inference
+completes while the policy is active (T4). A passing run is committed under
+`evidence/` as the audit trail.
 
 ## Run
 
@@ -63,8 +116,10 @@ cd backend && uvicorn app.main:app --port 8000
 
 ## Key properties judges look for
 
-- **Sovereign**: zero cloud APIs in the codebase; egress guard blocks and logs
-  every non-loopback connection attempt at socket level.
+- **Sovereign**: zero cloud APIs in the codebase; the air-gap is kernel-
+  enforced (macOS Seatbelt) for the whole process tree, with the app-level
+  guard as a logged second layer — and a committed adversarial evidence
+  report under `evidence/`.
 - **Model-agnostic**: adding an open-weight model = one entry in
   `backend/app/config.py` `MODEL_REGISTRY`.
 - **Agentic, not chatbot**: plan → tool calls → observations → iteration, with

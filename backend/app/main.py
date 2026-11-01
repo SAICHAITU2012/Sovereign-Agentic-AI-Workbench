@@ -6,6 +6,7 @@ connection to the internet (and every attempt is logged for the monitor).
 """
 import asyncio
 import json
+import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -79,6 +80,112 @@ async def network_selftest():
         return {"blocked": True, "detail": str(e)}
     except Exception as e:  # network-level failure also proves no egress path
         return {"blocked": True, "detail": f"no external egress ({e.__class__.__name__}: {e})"}
+
+
+# Adversarial code submitted through the REAL sandbox tool (run_python →
+# python -I child). Probe 1 is stopped by the sandbox prelude (app layer);
+# probes 2-4 deliberately bypass every Python-level guard — raw _socket,
+# an unguarded curl child process, raw libc syscalls — and are only stopped
+# by the kernel when the app is launched under scripts/run_airgapped.sh.
+SANDBOX_ESCAPE_PROBES = [
+    {
+        "name": "python_socket",
+        "vector": "socket.socket().connect() from generated code",
+        "code": ("import socket\n"
+                 "s = socket.socket()\n"
+                 "s.connect(('93.184.216.34', 80))\n"
+                 "print('EXFIL-PATH-EXISTS')\n"),
+    },
+    {
+        "name": "clevel_socket",
+        "vector": "_socket.socket() — bypasses the prelude's Python patch",
+        "code": ("import _socket\n"
+                 "s = _socket.socket()\n"
+                 "s.connect(('93.184.216.34', 80))\n"
+                 "print('EXFIL-PATH-EXISTS')\n"),
+    },
+    {
+        "name": "child_process",
+        "vector": "subprocess.run(['curl', …]) — child process has no Python guards",
+        "code": ("import subprocess\n"
+                 "r = subprocess.run(['/usr/bin/curl', '-sS', '-m', '6', "
+                 "'-o', '/dev/null', 'https://example.com'], capture_output=True, text=True)\n"
+                 "print('curl_rc', r.returncode)\n"
+                 "print(r.stderr[-300:])\n"),
+    },
+    {
+        "name": "ctypes_syscall",
+        "vector": "raw socket(2)/connect(2) syscalls via ctypes/libc",
+        "code": ("import ctypes, socket, struct\n"
+                 "libc = ctypes.CDLL(None, use_errno=True)\n"
+                 "fd = libc.socket(2, 1, 0)\n"
+                 "addr = struct.pack('BBH4s8s', 16, 2, socket.htons(80), "
+                 "bytes([93, 184, 216, 34]), b'\\x00' * 8)\n"
+                 "rc = libc.connect(fd, addr, 16)\n"
+                 "print('connect_rc', rc, 'errno', ctypes.get_errno())\n"),
+    },
+]
+
+_POSITIVE_CONTROL = ("import os\n"
+                     "open('probe_control.txt', 'w').write('local-io-ok')\n"
+                     "print('local-io-ok', os.getcwd())\n")
+
+
+def _classify_probe(res: dict) -> dict:
+    stdout, stderr = res.get("stdout", ""), res.get("stderr", "")
+    output = stdout + "\n" + stderr
+    # Each probe prints a success marker ONLY if its exfil path actually
+    # connected. The verdict is that marker, not the child's exit code
+    # (probes 3-4 report the blocked attempt and exit 0 by design).
+    exfiltrated = ("EXFIL-PATH-EXISTS" in output or "curl_rc 0" in output
+                   or "connect_rc 0" in output)
+    if "Sandbox: network access is disabled" in output:
+        enforced_by = "app: sandbox prelude"
+    elif "Operation not permitted" in output or "errno 1" in output:
+        enforced_by = "kernel: Seatbelt (EPERM)"
+    else:
+        enforced_by = "kernel: Seatbelt (connect refused)"
+    return {
+        "name": res.get("run_id"),
+        "exit_code": res.get("exit_code"),
+        "stdout": stdout[-400:],
+        "stderr": stderr[-400:],
+        "blocked": not exfiltrated,
+        "enforced_by": enforced_by if not exfiltrated else "NONE — EXFIL PATH EXISTS",
+    }
+
+
+@app.post("/api/network/sandbox_escape_test")
+async def sandbox_escape_test():
+    """Prove the sandbox holds against deliberate escape attempts.
+
+    Runs four adversarial snippets through the production run_python tool —
+    the same path generated code takes — plus a positive control proving the
+    sandbox still performs local work. With the kernel policy active
+    (scripts/run_airgapped.sh) every escape is refused by the OS; without it,
+    probes 2-4 would connect, so this endpoint also honestly exposes whether
+    the stronger layer is switched on.
+    """
+    from .tools.local_tools import run_python
+
+    summary, control = run_python(_POSITIVE_CONTROL)
+    control_ok = control.get("exit_code") == 0 and "local-io-ok" in control.get("stdout", "")
+
+    probes = []
+    for probe in SANDBOX_ESCAPE_PROBES:
+        _, res = run_python(probe["code"])
+        verdict = _classify_probe(res)
+        probes.append({"name": probe["name"], "vector": probe["vector"], **verdict})
+
+    return {
+        "kernel_policy": os.environ.get("SOVEREIGN_AIRGAP_KERNEL",
+                                        "none — Python guards only"),
+        "note": "blocked verdicts are decided by probe results, not by this label",
+        "positive_control": {"ok": control_ok, **{k: control.get(k) for k in
+                                                  ("exit_code", "stdout")}},
+        "probes": probes,
+        "all_blocked": all(p["blocked"] for p in probes) and control_ok,
+    }
 
 
 # -------------------------------------------------------------- uploads ----

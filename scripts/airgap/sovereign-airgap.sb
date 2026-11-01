@@ -1,0 +1,32 @@
+;;
+;; Sovereign Agentic AI Workbench — kernel-enforced air-gap (macOS Seatbelt)
+;;
+;; Applied via /usr/bin/sandbox-exec to the whole workbench process tree:
+;; the uvicorn backend, the sandboxed Python children it spawns, OCR
+;; subprocesses, and any process launched by generated code. The KERNEL
+;; refuses every socket operation that is not loopback TCP or local UNIX
+;; IPC. This cannot be bypassed from Python (socket, _socket, ctypes) or
+;; escaped via child processes, because it is enforced by the operating
+;; system rather than by library code.
+;;
+;; Loopback exceptions (all local, none internet-visible):
+;;   127.0.0.1:8000   workbench UI / API
+;;   127.0.0.1:11434  Ollama inference server
+;;   AF_UNIX          macOS local system IPC
+;;
+(version 1)
+(allow default)
+
+;; ---- deny ALL networking first, then allow exactly the local exceptions
+(deny network*)
+
+;; backend -> Ollama and any loopback callback ("localhost" covers
+;; 127.0.0.1 and ::1; Seatbelt requires the localhost token here)
+(allow network-outbound (remote ip "localhost:*"))
+
+;; serve the local UI / API on loopback only
+(allow network-bind    (local ip "localhost:*"))
+(allow network-inbound (local ip "localhost:*"))
+
+;; local system IPC (macOS services) — AF_UNIX never leaves the machine
+(allow network-outbound (remote unix-socket))

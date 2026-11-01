@@ -1,0 +1,149 @@
+{
+  "run": "2026-11-01T12:53:29.193236+00:00",
+  "platform": "darwin",
+  "profile": "/Users/saichaitu/Desktop/Local/SIH_2026-Prototype/sovereign-workbench/scripts/airgap/sovereign-airgap.sb",
+  "checks": [
+    {
+      "id": "T0",
+      "title": "workbench healthy under kernel policy",
+      "passed": true,
+      "detail": {
+        "http": 200,
+        "kernel_policy": true,
+        "models": {
+          "engine": "ollama (local, 127.0.0.1:11434)",
+          "online": true,
+          "installed": [
+            "moondream:latest",
+            "nomic-embed-text:latest",
+            "qwen2.5-coder:1.5b",
+            "qwen2.5:1.5b"
+          ],
+          "capabilities": {
+            "reasoning": {
+              "primary": "qwen2.5:1.5b",
+              "capability": "general reasoning / summarization / drafting",
+              "resolved": "qwen2.5:1.5b",
+              "ready": true,
+              "fallbacks": [
+                "qwen2.5:0.5b"
+              ]
+            },
+            "coding": {
+              "primary": "qwen2.5-coder:1.5b",
+              "capability": "code generation & repair",
+              "resolved": "qwen2.5-coder:1.5b",
+              "ready": true,
+              "fallbacks": [
+                "qwen2.5:1.5b"
+              ]
+            },
+            "vision": {
+              "primary": "moondream",
+              "capability": "image / drawing / scanned-page understanding",
+              "resolved": "moondream:latest",
+              "ready": true,
+              "fallbacks": []
+            },
+            "embedding": {
+              "primary": "nomic-embed-text",
+              "capability": "local embeddings for the knowledge base",
+              "resolved": "nomic-embed-text:latest",
+              "ready": true,
+              "fallbacks": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "T1a",
+      "title": "kernel denies external HTTPS from any process in the tree",
+      "passed": true,
+      "detail": {
+        "exit": 7,
+        "stdout": "",
+        "stderr": "curl: (7) Failed to connect to example.com port 443 after 1 ms: Couldn't connect to server\n"
+      }
+    },
+    {
+      "id": "T1b",
+      "title": "kernel still allows loopback (Ollama reachable)",
+      "passed": true,
+      "detail": {
+        "exit": 0,
+        "stdout": "200",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "T2",
+      "title": "app egress guard blocks outbound HTTP attempt (logged)",
+      "passed": true,
+      "detail": {
+        "blocked": true,
+        "detail": "no external egress (ConnectError: AIR-GAP POLICY: outbound connection to 172.66.147.243:443 is blocked. All inference and tooling is local; this process must not reach the internet.)"
+      }
+    },
+    {
+      "id": "T3",
+      "title": "sandbox escape attempts (raw _socket / child curl / ctypes syscalls) all blocked",
+      "passed": true,
+      "detail": {
+        "kernel_policy": "seatbelt",
+        "positive_control": {
+          "ok": true,
+          "exit_code": 0,
+          "stdout": "local-io-ok /Users/saichaitu/Desktop/Local/SIH_2026-Prototype/sovereign-workbench/workspace/sandbox/run_58ae3ebe\n"
+        },
+        "probes": [
+          {
+            "name": "8e2a3e6f",
+            "vector": "socket.socket().connect() from generated code",
+            "blocked": true,
+            "enforced_by": "app: sandbox prelude",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": "rkbench/workspace/sandbox/run_8e2a3e6f/main.py\", line 17, in <module>\n    s.connect(('93.184.216.34', 80))\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/saichaitu/Desktop/Local/SIH_2026-Prototype/sovereign-workbench/workspace/sandbox/run_8e2a3e6f/main.py\", line 8, in connect\n    raise ConnectionError(\"Sandbox: network access is disabled\")\nConnectionError: Sandbox: network access is disabled\n"
+          },
+          {
+            "name": "7504fcf4",
+            "vector": "_socket.socket() \u2014 bypasses the prelude's Python patch",
+            "blocked": true,
+            "enforced_by": "kernel: Seatbelt (EPERM)",
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": "Traceback (most recent call last):\n  File \"/Users/saichaitu/Desktop/Local/SIH_2026-Prototype/sovereign-workbench/workspace/sandbox/run_7504fcf4/main.py\", line 17, in <module>\n    s.connect(('93.184.216.34', 80))\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 1] Operation not permitted\n"
+          },
+          {
+            "name": "1994dc69",
+            "vector": "subprocess.run(['curl', \u2026]) \u2014 child process has no Python guards",
+            "blocked": true,
+            "enforced_by": "kernel: Seatbelt (connect refused)",
+            "exit_code": 0,
+            "stdout": "curl_rc 7\ncurl: (7) Failed to connect to example.com port 443 after 1 ms: Couldn't connect to server\n\n",
+            "stderr": ""
+          },
+          {
+            "name": "1f82f732",
+            "vector": "raw socket(2)/connect(2) syscalls via ctypes/libc",
+            "blocked": true,
+            "enforced_by": "kernel: Seatbelt (EPERM)",
+            "exit_code": 0,
+            "stdout": "connect_rc -1 errno 1\n",
+            "stderr": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "T4",
+      "title": "local LLM inference completes while air-gapped",
+      "passed": true,
+      "detail": {
+        "model": "qwen2.5:1.5b",
+        "response": "Powerful"
+      }
+    }
+  ]
+}
