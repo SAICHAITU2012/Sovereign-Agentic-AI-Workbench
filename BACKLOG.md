@@ -1,6 +1,6 @@
 # BACKLOG — Sovereign Workbench execution plan (v1.1, revised per external review)
 
-**Date:** 2026-11-13 · **v1.0:** 2026-11-06 (43 issues) · **v1.1:** one controlled revision applying all 14 findings from the BACKLOG technical review — issue IDs preserved, two issues added (M1.0, M2.5), priorities/dependencies/gates reconciled. Revision log: §7.
+**Date:** 2026-11-13 · **v1.0:** 2026-11-06 (43 issues) · **v1.1:** one controlled revision applying all 14 findings from the BACKLOG technical review — issue IDs preserved, two issues added (M1.0, M2.5), priorities/dependencies/gates reconciled. **v1.1 FROZEN** after final review (2026-11-13): 3 engineering-contract corrections + 2 clarifications applied (§7, rows 15–19) — **approved for push**. Revision log: §7.
 **Sources:** `PRODUCTION_PLAN.md` v2.0 · `ARCHITECTURE.md` · `SECURITY_MODEL.md` · external BACKLOG review (2026-11-13).
 **Status:** revised draft → approval → commit → push → GitHub issues.
 
@@ -91,13 +91,13 @@ M1/M2/M3/M4 run **in parallel** after M0 — but M1 and M4 both implement agains
 - DoD/Evidence: auth module; test-user fixture; `evidence/auth_core_check.md`.
 
 **M1.2 — Route protection & authz skeleton (P0 · Backend · deps: M1.0, M1.1)** *(v1.1: route classes separated; isolation claim moved to M6.2)*
-- Scope: protection on **every** route, enumerated by class: HTTP `/api/*` (dynamic enumeration test), **WebSocket handshake** (token via first message), **static frontend assets** (stay public — they contain no data; `app.js` gates on `/api/auth/me` and shows the login view), **intentionally-public endpoints: an explicit exception list, default = `/api/auth/login` only** (`/api/health` becomes protected; a redacted public variant is an implementation-time decision, documented either way). Ownership key (`user_id`) recorded on tasks and sessions — **this enables M6.2 to prove isolation; M1 does not claim user-to-user isolation** (review finding 6).
-- Acceptance: enumeration test fails when a new route is added unprotected; WS without auth closed by server; exception list asserted in the test, not implicit.
+- Scope: protection on **every** route, enumerated by class: HTTP `/api/*` (dynamic enumeration test), **WebSocket authentication (strict connection-level contract, v1.1 final): authentication completes at the connection level — the server accepts NO task data, subscriptions, or commands before authentication succeeds; unauthenticated connections are closed after a short deadline (10 s); message size and authentication attempts are bounded**, **static frontend assets** (stay public — they contain no data; `app.js` gates on `/api/auth/me` and shows the login view), **intentionally-public endpoints: an explicit exception list, default = `/api/auth/login` only** (`/api/health` becomes protected; a redacted public variant is an implementation-time decision, documented either way). Ownership key (`user_id`) recorded on tasks and sessions — **this enables M6.2 to prove isolation; M1 does not claim user-to-user isolation** (review finding 6).
+- Acceptance: enumeration test fails when a new route is added unprotected; **WS: application messages sent before authentication cannot reach protected functionality (negative test); the deadline closes unauthenticated connections; oversized messages and auth-spam attempts are rejected**; exception list asserted in the test, not implicit.
 - DoD/Evidence: route-inventory test; SECURITY_MODEL C10 → 🟡.
 
 **M1.3 — Session hardening (P0 · Backend · deps: M1.1)**
-- Scope: `Secure`/`HttpOnly`/`SameSite=Lax` cookies, expiry + sliding window, logout revokes server-side, login rate limiting (per-IP + per-user lockout), CSRF strategy for cookie auth on state-changing routes, secrets via env (`SESSION_SECRET`), no credentials in logs (log-scrub test).
-- Acceptance: expired session → 401; revoked → 401 immediately; 5 failed logins → lockout with retry-after; CSRF-less cross-site POST → rejected.
+- Scope: `Secure`/`HttpOnly`/`SameSite=Lax` cookies, expiry + sliding window, logout revokes server-side, login rate limiting (per-IP + per-user lockout), secrets via env (`SESSION_SECRET`), no credentials in logs (log-scrub test). **CSRF protection specified, not implied (v1.1 final): Origin/Referer validation on all state-changing routes + CSRF token (synchronizer or double-submit cookie) on cookie-authenticated state-changing routes; the protected route set is enumerated in the tests; `SameSite=Lax` is defense-in-depth, not the CSRF specification; the real cookie-authenticated browser flow is tested, not just unit-level flags.**
+- Acceptance: expired session → 401; revoked → 401 immediately; 5 failed logins → lockout with retry-after; **cross-site POST without Origin/CSRF token → rejected across the enumerated route set, while the legitimate cookie-authenticated flow still passes**.
 - DoD/Evidence: SECURITY_MODEL C10 ✅ (in-proc sessions; persistence lands via M4.1/contract).
 
 **M1.4 — Auth security test suite (P0 · Security · deps: M1.2, M1.3)**
@@ -128,7 +128,7 @@ M1/M2/M3/M4 run **in parallel** after M0 — but M1 and M4 both implement agains
 **M2.3 — Evidence automation in CI (P1 · DevOps · deps: M2.2, M3.1)** *(v1.1: CI tests the deployed boundary, not a bare probe container)*
 - Scope: GitHub Action per push: build the M3.1 compose stack, run the battery **inside the deployed stack** (the actual deployment security boundary, including the sandbox path tasks take), publish report artifact; run the auth + drift + concurrency pytest suites.
 - Acceptance: deliberately-broken probe → CI red; revert → green; artifact history public.
-- DoD/Evidence: CI badge; artifact stream.
+- DoD/Evidence: CI badge; artifact stream. **Reports are sanitized before publication (v1.1 final): no internal hostnames/IPs beyond the test fixtures, no configuration values, no absolute workspace paths; the sanitizer runs inside the CI job and its output is itself tested.**
 
 **M2.4 — Physical air-gap operations guide (P2 · Security · deps: M2.1)** *(v1.1: guide only — validation split out)*
 - Scope: `docs/AIRGAP_OPERATIONS.md`: no-network install, transfer procedures (signed bundles at M7.6), PF/Wi-Fi-off belt-and-braces for strictest demos.
@@ -159,7 +159,7 @@ M1/M2/M3/M4 run **in parallel** after M0 — but M1 and M4 both implement agains
 - Acceptance: on an air-gapped clean VM: bundle → healthy stack ≤30 min; **two distinct proofs recorded: (a) no internet access, (b) no unintended network communication** — battery green inside the stack + listening-socket/interface audit showing only expected endpoints.
 - DoD/Evidence: bundle manifest; both proofs in the install transcript; `deployment/docs/OFFLINE_DEPLOYMENT.md`.
 
-**M3.3 — Ops scripts + installation docs (P1 · DevOps · deps: M3.1; DB backup/restore portion also depends on M4.1)** *(v1.1: dependency added — review finding 8)*
+**M3.3 — Ops scripts + installation docs (P1 · DevOps · deps: M3.1 whole-issue; subtask M3.3a *DB backup/restore round-trip* is formally blocked by M4.1 and stays open in issue tracking until M4.1 lands)** *(v1.1: dependency formalized — review finding 8 + final clarification)*
 - Scope: `health-check.sh`, `backup.sh`/`restore.sh` (workspace + vector store; DB round-trip testable only after M4.1), `INSTALLATION.md`, `TROUBLESHOOTING.md`.
 - Acceptance: backup→wipe→restore reproduces KB stats (+ task list once M4.1 lands).
 - DoD/Evidence: scripts + docs + restore transcript.
@@ -314,8 +314,8 @@ M1/M2/M3/M4 run **in parallel** after M0 — but M1 and M4 both implement agains
 
 **M8.1 — Discovery → pilot agreement (P0 · Lead · deps: Track-B evidence artifact)** *(v1.1: discovery is an ongoing track — its output must exist as evidence, review §4)*
 - Scope: one department, one document-heavy workflow; **evidence of ≥2 user interviews with named roles** (`evidence/discovery_log.md`: workflows, sensitive-data boundaries, security constraints); non-sensitive test dataset agreed in writing; measurable acceptance criteria; signed pilot agreement (scope, duration, data handling, exit terms).
-- Acceptance: discovery log committed; signed agreement + written criteria; dataset delivered into the pilot environment.
-- DoD/Evidence: `docs/PILOT_CHARTER_TEMPLATE.md` + signed charter.
+- Acceptance: **sanitized** discovery log committed (raw notes stored outside the repo); signed agreement + written criteria; dataset delivered into the pilot environment.
+- DoD/Evidence: `docs/PILOT_CHARTER_TEMPLATE.md` + **sanitized** evidence record. **Sanitized-evidence rule (v1.1 final): the repo receives only sanitized artifacts** — sanitized charter, evidence reference, acceptance record, with personal/commercial/security-sensitive content removed. Signed agreements and raw interview records live in an approved, access-controlled location **outside the repo** (institutionalizes the Oct-2026 personal-files-purge lesson: nothing sensitive is committed, even temporarily).
 
 **M8.2 — Pilot deployment & acceptance run (P0 · DevOps+QA · deps: M8.1, M7)**
 - Scope: install via M3.2 bundle in the approved environment; onboard users (M6.2); run the agreed workflow for the pilot window; weekly triage; acceptance vs charter criteria.
@@ -423,6 +423,13 @@ M1/M2/M3/M4 run **in parallel** after M0 — but M1 and M4 both implement agains
 | 14 | M7.7 risk-acceptance ambiguity | Criticals fixed, never accepted; highs only with written Lead risk-acceptance + remediation date; log kept |
 
 Structural items (§4 of the review) applied throughout: CI tests the deployed boundary (M2.3) · absence-of-communication proof (M3.2) · M4.4 → P0 · M5.4 decoupled from M5.3 · M7.5 metrics defined · M8.1 discovery evidence artifact · M9.5 GeM sequencing · deferred register added (§5).
+
+**Final review (2026-11-13, pre-push) — 3 corrections + 2 clarifications, then v1.1 FROZEN:**
+(15) **M1.2** WS authentication is a connection-level contract: no pre-auth application data, 10 s auth deadline, bounded message size/auth attempts, negative tests prove pre-auth messages cannot reach protected functionality.
+(16) **M1.3** CSRF mechanism explicit: Origin/Referer validation + CSRF token on the enumerated state-changing route set; real cookie-authenticated browser flow tested; `SameSite=Lax` = defense-in-depth only.
+(17) **M8.1** sanitized-evidence rule: repo receives only sanitized artifacts; signed agreements and raw interview records stay in an access-controlled location outside the repo.
+(18) **M2.3** CI reports sanitized before publication (no internal hosts/config/paths; sanitizer itself tested).
+(19) **M3.3** subtask M3.3a (DB backup/restore) formally blocked by M4.1 in issue tracking.
 
 ## 8. Next steps once approved
 
