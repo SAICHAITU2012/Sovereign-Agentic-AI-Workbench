@@ -18,6 +18,11 @@ from fastapi.staticfiles import StaticFiles
 from .config import UPLOADS_DIR, OUTPUTS_DIR, KB_DIR
 from .security import egress
 
+# LOAD-BEARING ORDER (F.2): the egress guard MUST be installed before any
+# module that could open a socket is imported — provider.py below creates an
+# httpx client, and other imports may chain socket-using modules. tests/
+# test_egress_guard.py asserts this order statically AND dynamically; moving
+# this line below any socket-capable import must fail CI.
 egress.install_egress_guard()  # FIRST — before anything can make requests
 
 from .models.provider import gateway

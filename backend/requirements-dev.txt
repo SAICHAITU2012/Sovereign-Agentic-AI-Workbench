@@ -1,0 +1,2 @@
+# Dev/test-only dependencies — never needed at an air-gapped deployment site.
+pytest==9.1.1
