@@ -18,6 +18,7 @@ from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend"
 MAIN_PY = BACKEND_DIR / "app" / "main.py"
+sys.path.insert(0, str(BACKEND_DIR))  # for in-process app.* imports
 
 GUARD_CALL = "egress.install_egress_guard()"
 
@@ -83,3 +84,24 @@ def test_connect_is_patched_after_import():
         f"stderr: {proc.stderr[-800:]}"
     )
     assert "PATCHED" in proc.stdout
+
+
+# ------------------------------------------------------- F.1: honest pill --
+
+def test_pill_is_not_hardcoded():
+    """The UI must never claim enforcement it cannot show evidence for."""
+    html = (BACKEND_DIR / "app" / "static" / "index.html").read_text()
+    assert "AIR-GAP: ENFORCED" not in html, "hardcoded claim regressed into index.html"
+    assert 'id="airgap-pill"' in html
+
+
+def test_network_snapshot_exposes_kernel_and_verdict():
+    """The pill's inputs exist: kernel_policy label + last battery verdict."""
+    from app.security import egress
+    snap = egress.snapshot()
+    assert "kernel_policy" in snap and "last_escape_test" in snap
+    egress.record_escape_test(True)
+    last = egress.snapshot()["last_escape_test"]
+    assert last and last["all_blocked"] is True and last["ts"]
+    egress.record_escape_test(False)
+    assert egress.snapshot()["last_escape_test"]["all_blocked"] is False

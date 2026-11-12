@@ -129,7 +129,7 @@ Decorator-registered `Tool(name, description, json-schema, fn)`; schemas are wha
 
 - Three panels: Task Console (5 one-click demos + air-gap self-test + uploads + KB management + deliverables), Agent Activity timeline (WS events), Model Router + **Network Sovereignty Monitor** (live egress counters/events, 4 s polling) + Local Engine.
 - Vanilla JS, no framework, no build step — deliberate (air-gap-friendly, zero supply chain).
-- 🟡 `AIR-GAP: ENFORCED` header pill is **hardcoded**, not derived from actual enforcement state. The honest signal is the self-test/escape-test endpoints. 🔜 `M0-fix`: derive the pill from `SOVEREIGN_AIRGAP_KERNEL` + last escape-test verdict.
+- ✅ Air-gap pill is **derived, never hardcoded** (closed by F.1): `/api/network` exposes `kernel_policy` (`SOVEREIGN_AIRGAP_KERNEL`) + `last_escape_test` (latest battery verdict, recorded by the escape-test endpoint); the pill renders `KERNEL: SEATBELT` / `KERNEL: NETNS` / `APP GUARD ONLY` / `AIR-GAP: UNVERIFIED` (a failed battery outranks any label). A unit test guards against the hardcoded claim regressing.
 
 ## 3. Air-gap enforcement (two layers)
 
@@ -169,7 +169,7 @@ Decorator-registered `Tool(name, description, json-schema, fn)`; schemas are wha
 | 6 | Whole-file JSON vector store; no incremental index | `rag/store.py` | M6 |
 | 7 | Scanned-PDF KB ingestion ignores images (no OCR at ingest) | `rag/store.py` `_iter_documents` | M5 |
 | 8 | No structured logs / request IDs / metrics | everywhere | M6 |
-| 9 | Hardcoded AIR-GAP pill; kernel-policy label not surfaced | `index.html:20` | M0-fix |
+| 9 | ~~Hardcoded AIR-GAP pill~~ **closed (F.1)** — pill derived from `kernel_policy` + `last_escape_test` | `egress.py` · `app.js` · `index.html` | ✅ |
 | 10 | No unit tests / CI; smoke test is manual | `tests/` | M2 |
 | 11 | Constants-only config; no env/deployment config | `config.py` | M3 |
 | 12 | Single in-proc orchestrator; no task queue/cancellation | `main.py` `run_task_and_stream` | M4 |

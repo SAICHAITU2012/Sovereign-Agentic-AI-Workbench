@@ -13,6 +13,7 @@ organization. This module does three things:
 A blocked record is the smoking gun for judges: attempt -> blocked by policy.
 """
 import ipaddress
+import os
 import socket
 import threading
 import time
@@ -28,6 +29,24 @@ _counters = {
     "external_blocked": 0,
     "local_allowed": 0,
 }
+
+# F.1 — kernel-policy label, set by run_airgapped.sh ("seatbelt") or the
+# Linux netns launcher ("linux-netns"). A LABEL IS NOT PROOF: the verdict
+# comes from the escape battery, so we also track the last battery result
+# and expose both via snapshot() — the UI pill is derived from these, never
+# hardcoded (see /api/network consumers).
+_kernel_policy = os.environ.get("SOVEREIGN_AIRGAP_KERNEL", "").strip() or None
+_last_escape_test = None  # {"ts": iso, "all_blocked": bool} | None
+
+
+def record_escape_test(all_blocked: bool) -> None:
+    """Persist the latest escape-battery verdict for the honesty pill."""
+    global _last_escape_test
+    with _lock:
+        _last_escape_test = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "all_blocked": bool(all_blocked),
+        }
 
 
 def _record(dest: str, port: int, allowed: bool) -> None:
@@ -109,4 +128,6 @@ def snapshot() -> dict:
             "strict_airgap": STRICT_AIRGAP,
             "counters": dict(_counters),
             "events": list(_events)[-50:],
+            "kernel_policy": _kernel_policy,
+            "last_escape_test": dict(_last_escape_test) if _last_escape_test else None,
         }

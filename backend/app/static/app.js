@@ -168,6 +168,24 @@ async function refreshNetwork() {
       .slice().reverse().slice(0, 30)
       .map((e) => `<div class="${e.verdict.includes("BLOCK") ? "blocked" : ""}">${esc(e.time.slice(11, 19))} → ${esc(e.dest)}:${esc(e.port ?? "")} · ${esc(e.verdict)}</div>`)
       .join("");
+    // F.1 — the air-gap pill is DERIVED, never hardcoded: kernel-policy
+    // label + the latest escape-battery verdict. A failed battery outranks
+    // any label.
+    const pill = $("airgap-pill");
+    const last = s.last_escape_test;
+    if (last && !last.all_blocked) {
+      pill.textContent = "AIR-GAP: UNVERIFIED — ESCAPE TEST FAILED";
+      pill.className = "pill warn";
+    } else if (s.kernel_policy === "seatbelt") {
+      pill.textContent = "KERNEL: SEATBELT";
+      pill.className = "pill ok";
+    } else if (s.kernel_policy === "linux-netns") {
+      pill.textContent = "KERNEL: NETNS";
+      pill.className = "pill ok";
+    } else {
+      pill.textContent = "APP GUARD ONLY";
+      pill.className = "pill warn";
+    }
   } catch {}
 }
 

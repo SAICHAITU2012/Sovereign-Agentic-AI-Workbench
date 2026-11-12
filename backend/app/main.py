@@ -182,6 +182,9 @@ async def sandbox_escape_test():
         verdict = _classify_probe(res)
         probes.append({"name": probe["name"], "vector": probe["vector"], **verdict})
 
+    all_blocked = all(p["blocked"] for p in probes) and control_ok
+    # F.1: persist the verdict so the UI pill reflects the battery, not a label
+    egress.record_escape_test(all_blocked)
     return {
         "kernel_policy": os.environ.get("SOVEREIGN_AIRGAP_KERNEL",
                                         "none — Python guards only"),
@@ -189,7 +192,7 @@ async def sandbox_escape_test():
         "positive_control": {"ok": control_ok, **{k: control.get(k) for k in
                                                   ("exit_code", "stdout")}},
         "probes": probes,
-        "all_blocked": all(p["blocked"] for p in probes) and control_ok,
+        "all_blocked": all_blocked,
     }
 
 
